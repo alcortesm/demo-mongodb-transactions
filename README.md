@@ -1,3 +1,4 @@
 # Intro
 
-The purpose of this project is to understand how MongoDB transactions lock documents to prevent concurrent access to them.
+The purpose of this project is to explore how MongoDB transactions can be used
+to ensure consistency of Domain Drive Design (DDD) aggregates.
