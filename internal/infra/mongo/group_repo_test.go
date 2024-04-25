@@ -9,6 +9,7 @@ import (
 
 	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 	"github.com/alcortesm/demo-mongodb-transactions/internal/infra/mongo"
+	"github.com/alcortesm/demo-mongodb-transactions/internal/testhelp"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +26,7 @@ func newGroupRepoFixture(t *testing.T) *groupRepoFixture {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)
 
-	db := newTestDatabase(t)
+	db := testhelp.NewTestDatabase(t, "mongodb://localhost:27017")
 	coll := db.Collection("group")
 	repo := mongo.NewGroupRepo(coll)
 

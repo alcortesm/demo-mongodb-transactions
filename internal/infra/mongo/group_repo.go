@@ -7,7 +7,6 @@ import (
 	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type GroupRepo struct {
@@ -20,21 +19,35 @@ func NewGroupRepo(coll *mongo.Collection) *GroupRepo {
 	}
 }
 
-// Save persists the group into the database, overwriting any document with the same id.
+// Create stores the group in the database as a new document.
 //
 // Error:
 //   - domain.ErrTransientTransaction if the operation failed during a transaction
 //     that can be retried.
-func (r *GroupRepo) Save(ctx context.Context, group *domain.Group) error {
+func (r *GroupRepo) Create(ctx context.Context, group *domain.Group) error {
+	doc := newGroupDoc(group)
+
+	_, err := r.coll.InsertOne(ctx, doc)
+	if err != nil {
+		return fmt.Errorf("replacing: %w", domainError(err))
+	}
+
+	return nil
+}
+
+// Update overwrites the group document in the database.
+//
+// Error:
+//   - domain.ErrTransientTransaction if the operation failed during a transaction
+//     that can be retried.
+func (r *GroupRepo) Update(ctx context.Context, group *domain.Group) error {
 	filter := bson.M{
 		"_id": group.ID(),
 	}
 
 	doc := newGroupDoc(group)
 
-	opts := options.Replace().SetUpsert(true)
-
-	_, err := r.coll.ReplaceOne(ctx, filter, doc, opts)
+	_, err := r.coll.ReplaceOne(ctx, filter, doc)
 	if err != nil {
 		return fmt.Errorf("replacing: %w", domainError(err))
 	}

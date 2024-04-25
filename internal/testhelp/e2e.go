@@ -1,4 +1,4 @@
-package mongo_test
+package testhelp
 
 import (
 	"context"
@@ -18,13 +18,13 @@ import (
 //   - it connects to a Mongo instance at localhost:27017
 //   - it uses a unique database name, based on the test name, thus allowing for safe concurrent tests
 //   - it drops the database content during test cleanup.
-func newTestDatabase(t *testing.T) *mongo.Database {
+func NewTestDatabase(t *testing.T, uri string) *mongo.Database {
 	t.Helper()
 
 	dbName := databaseName(t)
 	t.Logf("using MongoDB database name %s", dbName)
 
-	client := newTestClient(t)
+	client := newTestClient(t, uri)
 	db := client.Database(dbName)
 	t.Cleanup(func() {
 		t.Helper()
@@ -41,13 +41,13 @@ func newTestDatabase(t *testing.T) *mongo.Database {
 	return db
 }
 
-// newTestClient is a test helper that returns a MongoDB client connected to a server at localhost:27017.
-func newTestClient(t *testing.T) *mongo.Client {
+// newTestClient is a test helper that returns a MongoDB client connected to a
+// server at uri.
+func newTestClient(t *testing.T, uri string) *mongo.Client {
 	timeout := 2 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	const uri = "mongodb://localhost:27017"
 	opts := options.Client().ApplyURI(uri)
 
 	client, err := mongo.Connect(ctx, opts)
