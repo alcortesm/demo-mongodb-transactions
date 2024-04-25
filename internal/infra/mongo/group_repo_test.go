@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alcortesm/demo-mongodb-transactions/domain"
-	"github.com/alcortesm/demo-mongodb-transactions/infra/mongo"
+	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
+	"github.com/alcortesm/demo-mongodb-transactions/internal/infra/mongo"
 	"github.com/stretchr/testify/require"
 )
 

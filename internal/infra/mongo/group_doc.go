@@ -1,6 +1,6 @@
 package mongo
 
-import "github.com/alcortesm/demo-mongodb-transactions/domain"
+import "github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 
 // groupDoc is a Mongo document representing a group
 type groupDoc struct {

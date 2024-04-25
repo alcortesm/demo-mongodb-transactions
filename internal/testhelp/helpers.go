@@ -3,7 +3,7 @@ package testhelp
 import (
 	"testing"
 
-	"github.com/alcortesm/demo-mongodb-transactions/domain"
+	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 )
 
 func SkillLevel(t *testing.T, n int) domain.SkillLevel {

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/alcortesm/demo-mongodb-transactions/domain"
+	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )

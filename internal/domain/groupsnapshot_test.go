@@ -3,7 +3,7 @@ package domain_test
 import (
 	"testing"
 
-	"github.com/alcortesm/demo-mongodb-transactions/domain"
+	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 	"github.com/stretchr/testify/require"
 )
 
