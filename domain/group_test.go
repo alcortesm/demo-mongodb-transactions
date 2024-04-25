@@ -92,7 +92,7 @@ func TestGroup_AddMembers(t *testing.T) {
 				// THEN the members are the ones we want
 				{
 					got := group.Members()
-					require.ElementsMatch(t, test.wantMembers, got)
+					require.Equal(t, test.wantMembers, got)
 				}
 
 				// THEN the members count is the one we want
@@ -123,7 +123,7 @@ func TestGroup_AddMembers(t *testing.T) {
 		// THEN there is no change in the list of members
 		{
 			got := group.Members()
-			require.ElementsMatch(t, membersBefore, got)
+			require.Equal(t, membersBefore, got)
 		}
 	})
 
