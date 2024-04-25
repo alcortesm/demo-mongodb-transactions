@@ -92,3 +92,9 @@ func (g *Group) Snapshot() *GroupSnapshot {
 		Members: g.Members(),
 	}
 }
+
+// HasMember returns if a user with the given id is a member of the group.
+func (g *Group) HasMember(id string) bool {
+	_, ok := g.members[id]
+	return ok
+}

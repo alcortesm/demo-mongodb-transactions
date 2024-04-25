@@ -7,6 +7,8 @@ import (
 	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 )
 
+//go:generate mockgen -source=app.go -destination=mock_dependencies_test.go -package=application_test
+
 type App struct {
 	uuider    Uuider
 	groupRepo GroupRepo

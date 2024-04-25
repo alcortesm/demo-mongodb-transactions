@@ -13,7 +13,7 @@ import (
 )
 
 // newTestDatabase is a test helper that creates a mongo database optimized for running
-// parallel integration tests:
+// parallel tests:
 //
 //   - it connects to a Mongo instance at localhost:27017
 //   - it uses a unique database name, based on the test name, thus allowing for safe concurrent tests

@@ -1,5 +1,3 @@
-//go:build integration
-
 package mongo_test
 
 import (
@@ -26,7 +24,7 @@ func newGroupRepoFixture(t *testing.T) *groupRepoFixture {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)
 
-	db := testhelp.NewTestDatabase(t, "mongodb://localhost:27017")
+	db := testhelp.NewTestDatabase(t, mongoURI)
 	coll := db.Collection("group")
 	repo := mongo.NewGroupRepo(coll)
 
@@ -36,28 +34,24 @@ func newGroupRepoFixture(t *testing.T) *groupRepoFixture {
 	}
 }
 
-// Tests you can save a group and load it later.
-func TestGroup_SaveLoad(t *testing.T) {
+// Tests you can save a new group and load it later.
+func TestGroup_CreateLoad(t *testing.T) {
 	fix := struct {
 		*groupRepoFixture
 		groupID string
 		ownerID string
-		userID  string
 	}{
 		groupRepoFixture: newGroupRepoFixture(t),
 		groupID:          "group_id",
 		ownerID:          "owner_id",
-		userID:           "user_id",
 	}
 
-	// GIVEN a group with users ownerID and userID stored in the repo
+	// GIVEN a group with owned by ownerID in the repo
 	group := domain.NewGroup(fix.groupID, fix.ownerID)
-	err := group.AddMember(fix.userID)
-	require.NoError(t, err)
-	err = fix.repo.Save(fix.ctx, group)
+	err := fix.repo.Create(fix.ctx, group)
 	require.NoError(t, err)
 
-	// WHEN you load a saved group
+	// WHEN you load the group
 	group2, err := fix.repo.Load(fix.ctx, fix.groupID)
 	require.NoError(t, err)
 
@@ -65,8 +59,8 @@ func TestGroup_SaveLoad(t *testing.T) {
 	require.Equal(t, group.Snapshot(), group2.Snapshot())
 }
 
-// Tests that save overwrites the document in the db.
-func TestGroup_SaveOverwrites(t *testing.T) {
+// Tests that Update overwrites the document in the db.
+func TestGroup_Update(t *testing.T) {
 	fix := struct {
 		*groupRepoFixture
 		groupID string
@@ -75,17 +69,17 @@ func TestGroup_SaveOverwrites(t *testing.T) {
 		groupID:          "group_id",
 	}
 
-	// GIVEN two different groups with the same id
+	// GIVEN a group owned by fix.onwerID
 	group1 := domain.NewGroup(fix.groupID, "owner_id_1")
 	group2 := domain.NewGroup(fix.groupID, "owner_id_2")
 	require.NotEqual(t, group1.Snapshot(), group2.Snapshot())
 
 	// GIVEN group1 is saved in the db
-	err := fix.repo.Save(fix.ctx, group1)
+	err := fix.repo.Create(fix.ctx, group1)
 	require.NoError(t, err)
 
 	// WHEN we save group2
-	err = fix.repo.Save(fix.ctx, group2)
+	err = fix.repo.Update(fix.ctx, group2)
 
 	// THEN we get no error
 	require.NoError(t, err)

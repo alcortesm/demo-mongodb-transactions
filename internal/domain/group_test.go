@@ -149,3 +149,53 @@ func TestGroup_AddMembers(t *testing.T) {
 		require.ErrorIs(t, err, domain.ErrGroupFull)
 	})
 }
+
+func TestHasMember(t *testing.T) {
+	t.Parallel()
+
+	const (
+		ownerID = "owner_id"
+		userID  = "user_id"
+	)
+
+	subtests := []struct {
+		name string
+		// the user you are looking for in the group
+		targetID string
+		// the expected response
+		want bool
+	}{
+		{
+			name:     "owner",
+			targetID: ownerID,
+			want:     true,
+		},
+		{
+			name:     "member but not owner",
+			targetID: userID,
+			want:     true,
+		},
+		{
+			name:     "not a member",
+			targetID: "not_a_member",
+			want:     false,
+		},
+	}
+
+	for _, test := range subtests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			// GIVEN a group with ownerID and userID as members
+			group := domain.NewGroup("irrelevant_group_id", ownerID)
+			err := group.AddMember(userID)
+			require.NoError(t, err)
+
+			// WHEN you ask if the test.targetID user is in the group
+			got := group.HasMember(test.targetID)
+
+			// THEN we get the expected response
+			require.Equal(t, test.want, got)
+		})
+	}
+}

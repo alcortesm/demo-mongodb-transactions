@@ -43,7 +43,30 @@ func newFixture(t *testing.T) *fixture {
 	}
 }
 
-func Test_AddOneUser(t *testing.T) {
+func Test_CreateGroup(t *testing.T) {
+	fix := struct {
+		*fixture
+		ownerID string
+	}{
+		fixture: newFixture(t),
+		ownerID: "some_owner_id",
+	}
+
+	// GIVEN a group owned by fix.ownerID
+	groupID, err := fix.app.CreateGroup(fix.ctx, fix.ownerID)
+	require.NoError(t, err)
+
+	// WHEN we get the group
+	group, err := fix.app.GetGroup(fix.ctx, groupID)
+	require.NoError(t, err)
+
+	// THEN the group has the data we expect
+	require.Equal(t, groupID, group.ID())
+	require.Equal(t, fix.ownerID, group.OwnerID())
+	require.Equal(t, []string{fix.ownerID}, group.Members())
+}
+
+func Test_AddOneUserToGroup(t *testing.T) {
 	fix := struct {
 		*fixture
 		ownerID string
@@ -54,14 +77,16 @@ func Test_AddOneUser(t *testing.T) {
 		userID:  "some_user_id",
 	}
 
+	// GIVEN a group owned by fix.ownerID
 	groupID, err := fix.app.CreateGroup(fix.ctx, fix.ownerID)
 	require.NoError(t, err)
 
+	// WHEN we add fix.userID to the group
 	err = fix.app.AddUserToGroup(fix.ctx, fix.userID, groupID)
 	require.NoError(t, err)
 
+	// THEN the group has the user as a member
 	modifiedGroup, err := fix.app.GetGroup(fix.ctx, groupID)
 	require.NoError(t, err)
-
 	require.Equal(t, []string{fix.ownerID, fix.userID}, modifiedGroup.Members())
 }

@@ -1,4 +1,4 @@
-package e2etest
+package mongo_test
 
 import (
 	"context"
