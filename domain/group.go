@@ -1,8 +1,6 @@
 package domain
 
-import (
-	"errors"
-)
+type empty struct{}
 
 // Group represents a group of users.
 //
@@ -13,7 +11,7 @@ import (
 type Group struct {
 	id      string
 	ownerID string
-	members map[string]InmutableUser
+	members map[string]empty
 }
 
 // MaxMembers is maximum number of members in a group.
@@ -28,18 +26,14 @@ const MaxMembers = 5
 // NewGroup creates a new group owned by owner.
 //
 // The owner is required.
-func NewGroup(id string, owner *User) (*Group, error) {
-	if owner == nil {
-		return nil, errors.New("nil owner")
-	}
-
+func NewGroup(id string, ownerID string) *Group {
 	return &Group{
 		id:      id,
-		ownerID: owner.ID(),
-		members: map[string]InmutableUser{
-			owner.ID(): owner,
+		ownerID: ownerID,
+		members: map[string]empty{
+			ownerID: empty{},
 		},
-	}, nil
+	}
 }
 
 // ID returns the group id.
@@ -52,29 +46,34 @@ func (g *Group) OwnerID() string {
 	return g.ownerID
 }
 
-// Members returns a slice with the members in a non-specified order.
-func (g *Group) Members() []InmutableUser {
-	result := make([]InmutableUser, 0, len(g.members))
-
-	for _, v := range g.members {
-		result = append(result, v)
-	}
-
-	return result
-}
-
 // AddMember adds a user to the group.
 //
 // If the user was already a member, it is no-op and returns nil.
 //
 // Returns:
 // - ErrMaxMembers if the group is already full
-func (g *Group) AddMember(user *User) error {
+func (g *Group) AddMember(id string) error {
 	if len(g.members) >= MaxMembers {
 		return ErrGroupFull
 	}
 
-	g.members[user.ID()] = user
+	g.members[id] = empty{}
 
 	return nil
+}
+
+// Members returns a slice with the members id in a non-specified order.
+func (g *Group) Members() []string {
+	result := make([]string, 0, len(g.members))
+
+	for id := range g.members {
+		result = append(result, id)
+	}
+
+	return result
+}
+
+// NumMembers returns the count of members in the group.
+func (g *Group) NumMembers() int {
+	return len(g.members)
 }

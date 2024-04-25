@@ -1,50 +1,20 @@
 package domain_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/alcortesm/demo-mongodb-transactions/domain"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGroup_Ctor(t *testing.T) {
-	t.Parallel()
-
-	t.Run("ok", func(t *testing.T) {
-		t.Parallel()
-
-		// GIVEN a user
-		user := domain.NewUser("irrelevant_user_id", domain.SkillLevel{})
-
-		// WHEN we create a group with a proper owner
-		_, err := domain.NewGroup("irrelevant_group_id", user)
-
-		// THEN we get no error
-		require.NoError(t, err)
-	})
-
-	t.Run("nil owner", func(t *testing.T) {
-		t.Parallel()
-
-		// WHEN we create a group with a nil owner
-		_, err := domain.NewGroup("irrelevant_group_id", nil)
-
-		// THEN we get an error
-		require.Error(t, err)
-	})
-}
-
 func TestGroup_ID(t *testing.T) {
 	t.Parallel()
 
 	const id = "some_group_id"
 
-	// GIVEN a irrelevant user
-	user := domain.NewUser("irrelevant_user_id", domain.SkillLevel{})
-
 	// GIVEN a group with an specific id
-	group, err := domain.NewGroup(id, user)
-	require.NoError(t, err)
+	group := domain.NewGroup(id, "irrelevant_owner_id")
 
 	// WHEN we ask the id of the group
 	got := group.ID()
@@ -56,37 +26,126 @@ func TestGroup_ID(t *testing.T) {
 func TestGroup_OwnerID(t *testing.T) {
 	t.Parallel()
 
-	// GIVEN a user
-	user := domain.NewUser("some_user_id", domain.SkillLevel{})
+	const ownerID = "owner_id"
 
 	// GIVEN a group owned by the user
-	group, err := domain.NewGroup("irrelevant_group_id", user)
-	require.NoError(t, err)
+	group := domain.NewGroup("irrelevant_group_id", ownerID)
 
 	// WHEN we ask for the owner id of the group
 	got := group.OwnerID()
 
 	// THEN we get the user id
-	require.Equal(t, user.ID(), got)
+	require.Equal(t, ownerID, got)
 }
 
-func TestGroup_Members(t *testing.T) {
+func TestGroup_AddMembers(t *testing.T) {
 	t.Parallel()
 
-	// GIVEN user1 and user2
-	user1 := domain.NewUser("user_id_1", domain.SkillLevel{})
-	user2 := domain.NewUser("user_id_2", domain.SkillLevel{})
+	t.Run("add less than MaxMembers", func(t *testing.T) {
+		const (
+			ownerID = "owner_id"
+			user1ID = "user_id_1"
+			user2ID = "user_id_2"
+			user3ID = "user_id_3"
+		)
 
-	// GIVEN a group with user1 and user2.
-	group, err := domain.NewGroup("irrelevant_group_id", user1)
-	require.NoError(t, err)
-	err = group.AddMember(user2)
-	require.NoError(t, err)
+		subtests := []struct {
+			name        string
+			usersToAdd  []string
+			wantMembers []string
+		}{
+			{
+				name:        "only owner",
+				usersToAdd:  nil,
+				wantMembers: []string{ownerID},
+			},
+			{
+				name:        "owner and user1",
+				usersToAdd:  []string{user1ID},
+				wantMembers: []string{ownerID, user1ID},
+			},
+			{
+				name:        "owner user1 and user2",
+				usersToAdd:  []string{user1ID, user2ID},
+				wantMembers: []string{ownerID, user1ID, user2ID},
+			},
+			{
+				name:        "owner user1 user2 and user3",
+				usersToAdd:  []string{user1ID, user2ID, user3ID},
+				wantMembers: []string{ownerID, user1ID, user2ID, user3ID},
+			},
+		}
 
-	// WHEN we ask for the members
-	got := group.Members()
+		for _, test := range subtests {
+			t.Run(test.name, func(t *testing.T) {
+				t.Parallel()
 
-	// THEN we get user1 and user2
-	want := []domain.InmutableUser{user1, user2}
-	require.ElementsMatch(t, want, got)
+				// GIVEN a group owned by ownerID
+				group := domain.NewGroup("irrelevant_group_id", ownerID)
+
+				// WHEN we add test.usersToAdd to the group
+				for _, id := range test.usersToAdd {
+					err := group.AddMember(id)
+					require.NoErrorf(t, err, "adding user %s to group", id)
+				}
+
+				// THEN the members are the ones we want
+				{
+					got := group.Members()
+					require.ElementsMatch(t, test.wantMembers, got)
+				}
+
+				// THEN the members count is the one we want
+				{
+					got := group.NumMembers()
+					require.Equal(t, len(test.wantMembers), got)
+				}
+
+			})
+		}
+	})
+
+	t.Run("add already existing member", func(t *testing.T) {
+		const (
+			ownerID = "owner_id" // owner of the group
+		)
+
+		// GIVEN a group owned by ownerID
+		group := domain.NewGroup("irrelevant_group_id", ownerID)
+		membersBefore := group.Members()
+
+		// WHEN we try to add an already existing member
+		err := group.AddMember(ownerID)
+
+		// THEN we get success
+		require.NoError(t, err)
+
+		// THEN there is no change in the list of members
+		{
+			got := group.Members()
+			require.ElementsMatch(t, membersBefore, got)
+		}
+	})
+
+	t.Run("group full", func(t *testing.T) {
+		// userID builds user id in the form: "user_id_<n>"
+		userID := func(n int) string {
+			return fmt.Sprintf("user_id_%d", n)
+		}
+
+		// GIVEN a full group
+		group := domain.NewGroup("irrelevant_group_id", userID(0))
+		for i := 1; i < domain.MaxMembers; i++ {
+			err := group.AddMember(userID(i))
+			require.NoErrorf(t, err, "adding user with index #%d", i)
+		}
+		require.Equal(t, domain.MaxMembers, group.NumMembers())
+
+		// WHEN we try to add one more user
+		err := group.AddMember("one_more_user_id")
+
+		// THEN we get ErrGroupFull
+		require.Error(t, err)
+		require.ErrorIs(t, err, domain.ErrGroupFull)
+	})
 }
