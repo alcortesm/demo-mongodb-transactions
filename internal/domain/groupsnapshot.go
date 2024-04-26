@@ -26,6 +26,14 @@ func (s *GroupSnapshot) Regenerate() (*Group, error) {
 		return nil, errors.New("empty id")
 	}
 
+	if s.OwnerID == "" {
+		return nil, errors.New("empty owner id")
+	}
+
+	if len(s.Members) == 0 {
+		return nil, errors.New("empty members")
+	}
+
 	if len(s.Members) > MaxMembers {
 		return nil, fmt.Errorf("too many members (%d)", len(s.Members))
 	}
