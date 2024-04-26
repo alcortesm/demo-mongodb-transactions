@@ -40,16 +40,8 @@ func (a *App) CreateGroup(ctx context.Context, ownerID string) (string, error) {
 	groupID := a.uuider.NewString()
 	group := domain.NewGroup(groupID, ownerID)
 
-	do := func(ctx context.Context) error {
-		if err := a.store.Create(ctx, group); err != nil {
-			return fmt.Errorf("creating: %v", err)
-		}
-
-		return nil
-	}
-
-	if err := do(ctx); err != nil {
-		return "", err
+	if err := a.store.Create(ctx, group); err != nil {
+		return "", fmt.Errorf("creating: %v", err)
 	}
 
 	return groupID, nil
@@ -59,19 +51,9 @@ func (a *App) CreateGroup(ctx context.Context, ownerID string) (string, error) {
 func (a *App) GetGroup(ctx context.Context, groupID string) (*domain.Group, error) {
 	var group *domain.Group
 
-	do := func(ctx context.Context) error {
-		var err error
-
-		group, err = a.store.Load(ctx, groupID)
-		if err != nil {
-			return fmt.Errorf("creating: %v", err)
-		}
-
-		return nil
-	}
-
-	if err := do(ctx); err != nil {
-		return nil, err
+	group, err := a.store.Load(ctx, groupID)
+	if err != nil {
+		return nil, fmt.Errorf("creating: %v", err)
 	}
 
 	return group, nil
