@@ -10,11 +10,11 @@ import (
 //go:generate mockgen -source=app.go -destination=mock_dependencies_test.go -package=application_test
 
 type App struct {
-	uuider    Uuider
-	groupRepo GroupRepo
+	uuider Uuider
+	store  Store
 }
 
-type GroupRepo interface {
+type Store interface {
 	Create(ctx context.Context, group *domain.Group) error
 	Update(ctx context.Context, group *domain.Group) error
 	Load(ctx context.Context, id string) (*domain.Group, error)
@@ -27,11 +27,11 @@ type Uuider interface {
 
 func New(
 	uuider Uuider,
-	groupRepo GroupRepo,
+	store Store,
 ) *App {
 	return &App{
-		uuider:    uuider,
-		groupRepo: groupRepo,
+		uuider: uuider,
+		store:  store,
 	}
 }
 
@@ -40,7 +40,7 @@ func (a *App) CreateGroup(ctx context.Context, ownerID string) (string, error) {
 	group := domain.NewGroup(groupID, ownerID)
 
 	do := func(ctx context.Context) error {
-		if err := a.groupRepo.Create(ctx, group); err != nil {
+		if err := a.store.Create(ctx, group); err != nil {
 			return fmt.Errorf("creating: %v", err)
 		}
 
@@ -61,7 +61,7 @@ func (a *App) GetGroup(ctx context.Context, groupID string) (*domain.Group, erro
 	do := func(ctx context.Context) error {
 		var err error
 
-		group, err = a.groupRepo.Load(ctx, groupID)
+		group, err = a.store.Load(ctx, groupID)
 		if err != nil {
 			return fmt.Errorf("creating: %v", err)
 		}
@@ -78,7 +78,7 @@ func (a *App) GetGroup(ctx context.Context, groupID string) (*domain.Group, erro
 
 func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string) error {
 	do := func(ctx context.Context) error {
-		group, err := a.groupRepo.Load(ctx, groupID)
+		group, err := a.store.Load(ctx, groupID)
 		if err != nil {
 			return fmt.Errorf("creating: %v", err)
 		}
@@ -87,7 +87,7 @@ func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string) error 
 			return fmt.Errorf("adding: %w", err)
 		}
 
-		if err := a.groupRepo.Update(ctx, group); err != nil {
+		if err := a.store.Update(ctx, group); err != nil {
 			return fmt.Errorf("updating: %v", err)
 		}
 

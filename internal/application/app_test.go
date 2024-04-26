@@ -13,22 +13,22 @@ import (
 )
 
 type fixture struct {
-	app       *application.App
-	uuider    *MockUuider
-	groupRepo *MockGroupRepo
+	app    *application.App
+	uuider *MockUuider
+	store  *MockStore
 }
 
 func newFixture(t *testing.T) *fixture {
 	ctrl := gomock.NewController(t)
 	uuider := NewMockUuider(ctrl)
-	groupRepo := NewMockGroupRepo(ctrl)
+	store := NewMockStore(ctrl)
 
-	app := application.New(uuider, groupRepo)
+	app := application.New(uuider, store)
 
 	return &fixture{
-		app:       app,
-		uuider:    uuider,
-		groupRepo: groupRepo,
+		app:    app,
+		uuider: uuider,
+		store:  store,
 	}
 }
 
@@ -54,7 +54,7 @@ func TestCreateGroup(t *testing.T) {
 		// GIVEN a groupRepo that fails the test if passed the wrong group
 		{
 			want := domain.NewGroup(fix.groupID, fix.ownerID)
-			fix.groupRepo.EXPECT().
+			fix.store.EXPECT().
 				Create(gomock.Any(), want).
 				Return(nil)
 		}
@@ -81,7 +81,7 @@ func TestCreateGroup(t *testing.T) {
 
 		// GIVEN a groupRepo that fails to create
 		cause := errors.New("some_repo_error")
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Create(gomock.Any(), gomock.Any()).
 			Return(cause)
 
@@ -109,7 +109,7 @@ func TestGetGroup(t *testing.T) {
 		// GIVEN a groupRepo that fails the test if passed the wrong group id
 		// and that returns a group
 		group := domain.NewGroup(fix.groupID, "irrelevant_owner_id")
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Load(gomock.Any(), fix.groupID).
 			Return(group, nil)
 
@@ -130,7 +130,7 @@ func TestGetGroup(t *testing.T) {
 
 		// GIVEN a groupRepo that fails to get
 		cause := errors.New("some_repo_error")
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Load(gomock.Any(), gomock.Any()).
 			Return(nil, cause)
 
@@ -161,12 +161,12 @@ func TestAddUserToGroup(t *testing.T) {
 
 		// GIVEN a groupRepo expecting a Load with for the right group
 		group := domain.NewGroup(fix.groupID, "irrelevant_owner_id")
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Load(gomock.Any(), fix.groupID).
 			Return(group, nil)
 
 		// GIVEN-THEN a groupRepo expecting an Update with the new user as a member
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Update(gomock.Any(), gomock.Any()).
 			DoAndReturn(func(_ any, got *domain.Group) error {
 				require.Equal(t, fix.groupID, got.ID())
@@ -192,7 +192,7 @@ func TestAddUserToGroup(t *testing.T) {
 
 		// GIVEN a groupRepo that fails to get
 		cause := errors.New("some_repo_error")
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Load(gomock.Any(), gomock.Any()).
 			Return(nil, cause)
 
@@ -215,13 +215,13 @@ func TestAddUserToGroup(t *testing.T) {
 
 		// GIVEN a groupRepo that loads an irrelevant group
 		group := domain.NewGroup("irrelevant_group_id", "irrelevant_owner_id")
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Load(gomock.Any(), gomock.Any()).
 			Return(group, nil)
 
 		// GIVEN a groupRepo that fails to update the group
 		cause := errors.New("some_store_error")
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Update(gomock.Any(), gomock.Any()).
 			Return(cause)
 
@@ -258,7 +258,7 @@ func TestAddUserToGroup(t *testing.T) {
 				require.NoErrorf(t, err, "adding member %d", i)
 			}
 		}
-		fix.groupRepo.EXPECT().
+		fix.store.EXPECT().
 			Load(gomock.Any(), gomock.Any()).
 			Return(fullGroup, nil)
 

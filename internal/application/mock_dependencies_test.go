@@ -17,31 +17,31 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockGroupRepo is a mock of GroupRepo interface.
-type MockGroupRepo struct {
+// MockStore is a mock of Store interface.
+type MockStore struct {
 	ctrl     *gomock.Controller
-	recorder *MockGroupRepoMockRecorder
+	recorder *MockStoreMockRecorder
 }
 
-// MockGroupRepoMockRecorder is the mock recorder for MockGroupRepo.
-type MockGroupRepoMockRecorder struct {
-	mock *MockGroupRepo
+// MockStoreMockRecorder is the mock recorder for MockStore.
+type MockStoreMockRecorder struct {
+	mock *MockStore
 }
 
-// NewMockGroupRepo creates a new mock instance.
-func NewMockGroupRepo(ctrl *gomock.Controller) *MockGroupRepo {
-	mock := &MockGroupRepo{ctrl: ctrl}
-	mock.recorder = &MockGroupRepoMockRecorder{mock}
+// NewMockStore creates a new mock instance.
+func NewMockStore(ctrl *gomock.Controller) *MockStore {
+	mock := &MockStore{ctrl: ctrl}
+	mock.recorder = &MockStoreMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockGroupRepo) EXPECT() *MockGroupRepoMockRecorder {
+func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 	return m.recorder
 }
 
 // Create mocks base method.
-func (m *MockGroupRepo) Create(ctx context.Context, group *domain.Group) error {
+func (m *MockStore) Create(ctx context.Context, group *domain.Group) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, group)
 	ret0, _ := ret[0].(error)
@@ -49,13 +49,13 @@ func (m *MockGroupRepo) Create(ctx context.Context, group *domain.Group) error {
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockGroupRepoMockRecorder) Create(ctx, group any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Create(ctx, group any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockGroupRepo)(nil).Create), ctx, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockStore)(nil).Create), ctx, group)
 }
 
 // Load mocks base method.
-func (m *MockGroupRepo) Load(ctx context.Context, id string) (*domain.Group, error) {
+func (m *MockStore) Load(ctx context.Context, id string) (*domain.Group, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Load", ctx, id)
 	ret0, _ := ret[0].(*domain.Group)
@@ -64,13 +64,13 @@ func (m *MockGroupRepo) Load(ctx context.Context, id string) (*domain.Group, err
 }
 
 // Load indicates an expected call of Load.
-func (mr *MockGroupRepoMockRecorder) Load(ctx, id any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Load(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockGroupRepo)(nil).Load), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Load", reflect.TypeOf((*MockStore)(nil).Load), ctx, id)
 }
 
 // Update mocks base method.
-func (m *MockGroupRepo) Update(ctx context.Context, group *domain.Group) error {
+func (m *MockStore) Update(ctx context.Context, group *domain.Group) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Update", ctx, group)
 	ret0, _ := ret[0].(error)
@@ -78,9 +78,9 @@ func (m *MockGroupRepo) Update(ctx context.Context, group *domain.Group) error {
 }
 
 // Update indicates an expected call of Update.
-func (mr *MockGroupRepoMockRecorder) Update(ctx, group any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Update(ctx, group any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockGroupRepo)(nil).Update), ctx, group)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockStore)(nil).Update), ctx, group)
 }
 
 // MockUuider is a mock of Uuider interface.
