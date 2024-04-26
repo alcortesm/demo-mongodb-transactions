@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/alcortesm/demo-mongodb-transactions/internal/domain"
 )
@@ -76,7 +77,7 @@ func (a *App) GetGroup(ctx context.Context, groupID string) (*domain.Group, erro
 	return group, nil
 }
 
-func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string) error {
+func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string, options ...Option) error {
 	do := func(ctx context.Context) error {
 		group, err := a.store.Load(ctx, groupID)
 		if err != nil {
@@ -87,6 +88,10 @@ func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string) error 
 			return fmt.Errorf("adding: %w", err)
 		}
 
+		if d, ok := delayBeforeUpdating(options...); ok {
+			time.Sleep(d)
+		}
+
 		if err := a.store.Update(ctx, group); err != nil {
 			return fmt.Errorf("updating: %v", err)
 		}
@@ -95,4 +100,14 @@ func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string) error 
 	}
 
 	return do(ctx)
+}
+
+func delayBeforeUpdating(options ...Option) (time.Duration, bool) {
+	for _, o := range options {
+		if raw, ok := o.(DelayBeforeUpdating); ok {
+			return time.Duration(raw), true
+		}
+	}
+
+	return time.Duration(0), false
 }
