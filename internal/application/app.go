@@ -49,8 +49,6 @@ func (a *App) CreateGroup(ctx context.Context, ownerID string) (string, error) {
 }
 
 func (a *App) GetGroup(ctx context.Context, groupID string) (*domain.Group, error) {
-	var group *domain.Group
-
 	group, err := a.store.Load(ctx, groupID)
 	if err != nil {
 		return nil, fmt.Errorf("creating: %v", err)
