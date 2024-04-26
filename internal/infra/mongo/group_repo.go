@@ -38,6 +38,7 @@ func (r *GroupRepo) Create(ctx context.Context, group *domain.Group) error {
 // Update overwrites the group document in the database.
 //
 // Error:
+//   - domain.ErrNotFound if the group is not found
 //   - domain.ErrTransientTransaction if the operation failed during a transaction
 //     that can be retried.
 func (r *GroupRepo) Update(ctx context.Context, group *domain.Group) error {
@@ -47,9 +48,13 @@ func (r *GroupRepo) Update(ctx context.Context, group *domain.Group) error {
 
 	doc := newGroupDoc(group)
 
-	_, err := r.coll.ReplaceOne(ctx, filter, doc)
+	result, err := r.coll.ReplaceOne(ctx, filter, doc)
 	if err != nil {
 		return fmt.Errorf("replacing: %w", domainError(err))
+	}
+
+	if result.MatchedCount == 0 {
+		return domain.ErrNotFound
 	}
 
 	return nil
