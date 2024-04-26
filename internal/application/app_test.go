@@ -3,6 +3,7 @@ package application_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/alcortesm/demo-mongodb-transactions/internal/application"
@@ -235,30 +236,37 @@ func TestAddUserToGroup(t *testing.T) {
 	t.Run("full group", func(t *testing.T) {
 		t.Parallel()
 
+		// memberID create test member ids: member_id_0, member_id_1...
+		memberID := func(n int) string { return fmt.Sprintf("member_id_%d", n) }
+
 		fix := struct {
 			*fixture
+			groupID string
+			ownerID string
 		}{
 			fixture: newFixture(t),
+			groupID: "group_id",
+			ownerID: "owner_id",
 		}
 
 		// GIVEN a groupRepo that loads a full group
-		group := domain.NewGroup("irrelevant_group_id", "irrelevant_owner_id")
-		t.Fatal("TODO return a full group from here")
+		var fullGroup *domain.Group
+		{
+			fullGroup = domain.NewGroup(fix.groupID, fix.ownerID)
+			for i := range domain.MaxMembers - 1 {
+				err := fullGroup.AddMember(memberID(i))
+				require.NoErrorf(t, err, "adding member %d", i)
+			}
+		}
 		fix.groupRepo.EXPECT().
 			Load(gomock.Any(), gomock.Any()).
-			Return(group, nil)
-
-		// GIVEN a groupRepo that fails to update the group
-		cause := errors.New("some_store_error")
-		fix.groupRepo.EXPECT().
-			Update(gomock.Any(), gomock.Any()).
-			Return(cause)
+			Return(fullGroup, nil)
 
 		// WHEN we add a user to the group
-		err := fix.app.AddUserToGroup(context.Background(), "irrelevant_user_id", "irrelevant_group_id")
+		err := fix.app.AddUserToGroup(context.Background(), "new_user_id", fix.groupID)
 
-		// THEN we get the error we expect
+		// THEN we get the error ErrGroupFull
 		require.Error(t, err)
-		require.ErrorContains(t, err, cause.Error())
+		require.ErrorIs(t, err, domain.ErrGroupFull)
 	})
 }

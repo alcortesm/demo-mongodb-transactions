@@ -84,7 +84,7 @@ func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string) error 
 		}
 
 		if err := group.AddMember(userID); err != nil {
-			return fmt.Errorf("adding: %v", err)
+			return fmt.Errorf("adding: %w", err)
 		}
 
 		if err := a.groupRepo.Update(ctx, group); err != nil {
