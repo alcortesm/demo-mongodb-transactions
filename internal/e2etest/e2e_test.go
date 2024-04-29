@@ -32,7 +32,7 @@ func (googleUuider) NewString() string {
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
 
-	const timeout = 2 * time.Second
+	const timeout = 10 * time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	t.Cleanup(cancel)
 
@@ -110,66 +110,111 @@ func Test_AddOneUserToGroup(t *testing.T) {
 func Test_Concurrency_AddLotsOfUsersConcurrentlyToGroup(t *testing.T) {
 	fix := struct {
 		*fixture
-		ownerID string
+		ownerID   string
+		userCount int
 	}{
-		fixture: newFixture(t),
-		ownerID: "some_owner_id",
+		fixture:   newFixture(t),
+		ownerID:   "some_owner_id",
+		userCount: 10,
 	}
 
-	// userID returns the id of a user based on the number n, for example, "user_id_0042"
-	userID := func(n int) string { return fmt.Sprintf("user_id_%02d", n) }
+	// make sure the are trying to add more than the maximum number of users
+	// allowed in a group
+	require.GreaterOrEqual(t, fix.userCount, domain.MaxMembers)
 
-	// GIVEN a group owned by fix.ownerID
-	groupID, err := fix.app.CreateGroup(fix.ctx, fix.ownerID)
-	require.NoError(t, err)
-
-	// GIVEN many users (2 * MaxMembers)
-	users := make([]string, 0, 2*domain.MaxMembers)
-	for i := range 2 * domain.MaxMembers {
-		users = append(users, userID(i))
+	// we will run the test twice: first without transactions in the app, then
+	// with transactions enabled
+	subtests := []struct {
+		name               string
+		options            []application.Option
+		wantSuccessCount   int
+		wantFullGroupCount int
+	}{
+		{
+			// when adding users concurrently with transactions disabled all
+			// AddUserToGroup requests will be successful and we will never get
+			// an ErrFullGroup error
+			name:               "transactions disabled",
+			options:            nil, // transactions are disabled by default
+			wantSuccessCount:   fix.userCount,
+			wantFullGroupCount: 0,
+		},
+		{
+			// when adding users concurrently with transactions ENABLED we will
+			// only be able to add a few users, until the group is full, then
+			// we will get a bunch of ErrFullGroup errors for the rest of the
+			// requests
+			name:               "transactions enabled",
+			options:            []application.Option{application.EnableTransactions{}},
+			wantSuccessCount:   domain.MaxMembers - 1,                   // the owner already counts as a member
+			wantFullGroupCount: fix.userCount - (domain.MaxMembers - 1), // the remaininig requests
+		},
 	}
 
-	// WHEN we add all the users to the group at the same time and keep track
-	// of how many requests got success vs how many requests got a
-	// domain.ErrGroupFull error.
-	var successCount, fullGroupErrorCount int
-	{
-		var wg sync.WaitGroup
-		wg.Add(len(users))
+	for _, test := range subtests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
 
-		results := make([]error, len(users))
-		for i, id := range users {
-			go func() {
-				defer wg.Done()
+			// userID returns the id of a user based on the number n, for example, "user_id_0042"
+			userID := func(n int) string { return fmt.Sprintf("user_id_%02d", n) }
 
-				// introduce an artificial delay in the app layer to improve the chance of
-				// processing all the requests at the same time
-				option := application.DelayBeforeUpdating(1 * time.Second)
+			// GIVEN a group owned by fix.ownerID
+			groupID, err := fix.app.CreateGroup(fix.ctx, fix.ownerID)
+			require.NoError(t, err)
 
-				results[i] = fix.app.AddUserToGroup(
-					fix.ctx,
-					id,
-					groupID,
-					option,
-				)
-			}()
-		}
-
-		wg.Wait()
-		for i, err := range results {
-			switch {
-			case err == nil:
-				successCount++
-			case errors.Is(err, domain.ErrGroupFull):
-				fullGroupErrorCount++
-			default:
-				t.Errorf("adding %s: %v", userID(i), err)
+			// GIVEN more users than we can fit in the group
+			users := make([]string, 0, fix.userCount)
+			for i := range fix.userCount {
+				users = append(users, userID(i))
 			}
-		}
-	}
 
-	// THEN the number of requests that got a successful reponse is domain.MaxMembers-1
-	// and the number of requests that got an ErrGroupFull error is domain.MaxMembers+1
-	assert.Equal(t, domain.MaxMembers-1, successCount, "wrong successCount")
-	assert.Equal(t, domain.MaxMembers+1, fullGroupErrorCount, "wrong fullGroupErrorCount")
+			// WHEN we add all the users to the group at the same time and keep track
+			// of how many requests got success vs how many requests got a
+			// domain.ErrGroupFull error.
+			var successCount, fullGroupCount int
+			{
+				var wg sync.WaitGroup
+				wg.Add(len(users))
+
+				results := make([]error, len(users))
+				for i, id := range users {
+					go func() {
+						defer wg.Done()
+
+						option := append(
+							// introduce an artificial delay in the app layer to improve the chance of
+							// processing all the requests at the same time
+							[]application.Option{application.DelayBeforeUpdating(500 * time.Millisecond)},
+							test.options...,
+						)
+
+						results[i] = fix.app.AddUserToGroup(
+							fix.ctx,
+							id,
+							groupID,
+							option...,
+						)
+					}()
+				}
+
+				wg.Wait()
+				for i, err := range results {
+					switch {
+					case err == nil:
+						successCount++
+					case errors.Is(err, domain.ErrGroupFull):
+						fullGroupCount++
+					default:
+						t.Errorf("adding %s: %v", userID(i), err)
+					}
+				}
+			}
+
+			// THEN the number of requests that got a successful reponse is test.wantSuccessCount
+			// and the number of requests that got an ErrGroupFull error is test.wantFullGroupCount
+			assert.Equal(t, test.wantSuccessCount, successCount, "wrong count of successful calls")
+			assert.Equal(t, test.wantFullGroupCount, fullGroupCount, "wrong count of ErrGroupFull received")
+
+		})
+	}
 }

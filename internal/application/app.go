@@ -19,6 +19,7 @@ type Store interface {
 	Create(ctx context.Context, group *domain.Group) error
 	Update(ctx context.Context, group *domain.Group) error
 	Load(ctx context.Context, id string) (*domain.Group, error)
+	WithTransaction(ctx context.Context, callback func(ctx context.Context) error, retries uint) error
 }
 
 // Uuider knows how to return V4 UUIDs.
@@ -68,26 +69,21 @@ func (a *App) AddUserToGroup(ctx context.Context, userID, groupID string, option
 			return fmt.Errorf("adding: %w", err)
 		}
 
-		if d, ok := delayBeforeUpdating(options...); ok {
+		if d, ok := mustDelayBeforeUpdating(options...); ok {
 			time.Sleep(d)
 		}
 
 		if err := a.store.Update(ctx, group); err != nil {
-			return fmt.Errorf("updating: %v", err)
+			return fmt.Errorf("updating: %w", err)
 		}
 
 		return nil
 	}
 
-	return do(ctx)
-}
-
-func delayBeforeUpdating(options ...Option) (time.Duration, bool) {
-	for _, o := range options {
-		if raw, ok := o.(DelayBeforeUpdating); ok {
-			return time.Duration(raw), true
-		}
+	if areTransactionsEnabled(options...) {
+		const retries = 10
+		return a.store.WithTransaction(ctx, do, retries)
 	}
 
-	return time.Duration(0), false
+	return do(ctx)
 }

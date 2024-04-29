@@ -17,13 +17,10 @@ import (
 //
 //   - domain.ErrNotFound: whatever you were looking for, it has not been found.
 func domainError(err error) error {
-	{
-		e := err
-		// check for transient transaction errors.
-		for ; e != nil; e = errors.Unwrap(e) {
-			if le, ok := e.(mongo.LabeledError); ok && le.HasErrorLabel(driver.TransientTransactionError) {
-				return fmt.Errorf("%w: %v", domain.ErrTransientTransaction, err)
-			}
+	// check for transient transaction errors.
+	for current := err; current != nil; current = errors.Unwrap(current) {
+		if le, ok := current.(mongo.LabeledError); ok && le.HasErrorLabel(driver.TransientTransactionError) {
+			return fmt.Errorf("%w: %v", domain.ErrTransientTransaction, err)
 		}
 	}
 

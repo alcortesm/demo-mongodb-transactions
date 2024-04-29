@@ -12,3 +12,27 @@ type Option interface {
 type DelayBeforeUpdating time.Duration
 
 func (DelayBeforeUpdating) option() {}
+
+func mustDelayBeforeUpdating(options ...Option) (time.Duration, bool) {
+	for _, o := range options {
+		if raw, ok := o.(DelayBeforeUpdating); ok {
+			return time.Duration(raw), true
+		}
+	}
+
+	return time.Duration(0), false
+}
+
+type EnableTransactions struct{}
+
+func (EnableTransactions) option() {}
+
+func areTransactionsEnabled(options ...Option) bool {
+	for _, o := range options {
+		if _, ok := o.(EnableTransactions); ok {
+			return true
+		}
+	}
+
+	return false
+}

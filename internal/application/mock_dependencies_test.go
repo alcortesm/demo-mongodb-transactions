@@ -83,6 +83,20 @@ func (mr *MockStoreMockRecorder) Update(ctx, group any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockStore)(nil).Update), ctx, group)
 }
 
+// WithTransaction mocks base method.
+func (m *MockStore) WithTransaction(ctx context.Context, callback func(context.Context) error, retries uint) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WithTransaction", ctx, callback, retries)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WithTransaction indicates an expected call of WithTransaction.
+func (mr *MockStoreMockRecorder) WithTransaction(ctx, callback, retries any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithTransaction", reflect.TypeOf((*MockStore)(nil).WithTransaction), ctx, callback, retries)
+}
+
 // MockUuider is a mock of Uuider interface.
 type MockUuider struct {
 	ctrl     *gomock.Controller
