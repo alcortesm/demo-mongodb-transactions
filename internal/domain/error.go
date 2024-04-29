@@ -1,9 +1,11 @@
 package domain
 
-import "errors"
+type errorString string
 
-var (
-	ErrGroupFull            = errors.New("group is full")
-	ErrTransientTransaction = errors.New("transient transaction failure")
-	ErrNotFound             = errors.New("not found")
+func (e errorString) Error() string { return string(e) }
+
+const (
+	ErrGroupFull            = errorString("group is full")
+	ErrTransientTransaction = errorString("transient transaction failure")
+	ErrNotFound             = errorString("not found")
 )
