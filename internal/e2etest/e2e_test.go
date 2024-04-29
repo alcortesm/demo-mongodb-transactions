@@ -98,7 +98,7 @@ func Test_AddOneUserToGroup(t *testing.T) {
 
 // Test the app layer respects the Group invariants while adding users:
 //
-// Let's make many AddUserToGroup requests concurrently, more than the maximum
+// Let's make many concurrent AddUserToGroup requests, more than the maximum
 // number of members allowed in a group.
 //
 // If the app layers respects the Group invariants, only MaxMembers-1 requests
@@ -108,22 +108,14 @@ func Test_AddOneUserToGroup(t *testing.T) {
 //   - 4 will be added correctly (5 minus the owner, which was already a member)
 //   - 6 will fail receive a domain.ErrFullGroup error
 func Test_Concurrency_AddLotsOfUsersConcurrentlyToGroup(t *testing.T) {
-	fix := struct {
-		*fixture
-		ownerID   string
-		userCount int
-	}{
-		fixture:   newFixture(t),
-		ownerID:   "some_owner_id",
-		userCount: 10,
-	}
+	// number of users we are going to add to the group, not counting the owner
+	const userCount = 2 * domain.MaxMembers
 
 	// make sure the are trying to add more than the maximum number of users
 	// allowed in a group
-	require.GreaterOrEqual(t, fix.userCount, domain.MaxMembers)
+	require.GreaterOrEqual(t, userCount, domain.MaxMembers)
 
-	// we will run the test twice: first without transactions in the app, then
-	// with transactions enabled
+	// we will run the test twice: with and without transactions
 	subtests := []struct {
 		name               string
 		options            []application.Option
@@ -136,18 +128,17 @@ func Test_Concurrency_AddLotsOfUsersConcurrentlyToGroup(t *testing.T) {
 			// an ErrFullGroup error
 			name:               "transactions disabled",
 			options:            nil, // transactions are disabled by default
-			wantSuccessCount:   fix.userCount,
+			wantSuccessCount:   userCount,
 			wantFullGroupCount: 0,
 		},
 		{
 			// when adding users concurrently with transactions ENABLED we will
-			// only be able to add a few users, until the group is full, then
-			// we will get a bunch of ErrFullGroup errors for the rest of the
-			// requests
+			// only be able to add a few users until the group is full, then
+			// we will get a bunch of ErrFullGroup errors for the remaining requests
 			name:               "transactions enabled",
 			options:            []application.Option{application.EnableTransactions{}},
-			wantSuccessCount:   domain.MaxMembers - 1,                   // the owner already counts as a member
-			wantFullGroupCount: fix.userCount - (domain.MaxMembers - 1), // the remaininig requests
+			wantSuccessCount:   domain.MaxMembers - 1,               // the owner already counts as a member
+			wantFullGroupCount: userCount - (domain.MaxMembers - 1), // the remaininig requests
 		},
 	}
 
@@ -155,16 +146,18 @@ func Test_Concurrency_AddLotsOfUsersConcurrentlyToGroup(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
+			fix := newFixture(t)
+
 			// userID returns the id of a user based on the number n, for example, "user_id_0042"
 			userID := func(n int) string { return fmt.Sprintf("user_id_%02d", n) }
 
 			// GIVEN a group owned by fix.ownerID
-			groupID, err := fix.app.CreateGroup(fix.ctx, fix.ownerID)
+			groupID, err := fix.app.CreateGroup(fix.ctx, "some_owner_id")
 			require.NoError(t, err)
 
 			// GIVEN more users than we can fit in the group
-			users := make([]string, 0, fix.userCount)
-			for i := range fix.userCount {
+			users := make([]string, 0, userCount)
+			for i := range userCount {
 				users = append(users, userID(i))
 			}
 
